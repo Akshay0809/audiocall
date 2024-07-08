@@ -1,0 +1,21 @@
+
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Audio Call</title>
+</head>
+<body>
+    <h1>Audio Call Application</h1>
+    <form method="post">
+        {% csrf_token %}
+        <button type="submit" name="generate">Generate Call PIN</button>
+    </form>
+    <hr>
+    <form method="post">
+        {% csrf_token %}
+        <input type="text" name="pin_code" placeholder="Enter PIN to join call">
+        <button type="submit" name="join">Join Call</button>
+    </form>
+</body>
+</html>

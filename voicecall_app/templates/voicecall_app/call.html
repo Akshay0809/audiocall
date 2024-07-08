@@ -1,0 +1,248 @@
+
+<!-- DOCTYPE html>
+<html>
+<head>
+    <title>Audio Call - {{ pin_code }}</title>
+</head>
+<body>
+    <h2>Call PIN: {{ pin_code }}</h2>
+    <audio id="local-audio" autoplay></audio>
+    <audio id="remote-audio" autoplay></audio>
+    <script>
+        var pin_code = '{{ pin_code }}';
+        var webSocket = new WebSocket('ws://' + window.location.host + '/ws/call/' + pin_code + '/');
+
+        var localStream = null;
+        var peerConnections = {};
+        var configuration = {'iceServers': [{'urls': 'stun:stun.l.google.com:19302'}]};
+
+        webSocket.onmessage = function(event) {
+            var data = JSON.parse(event.data);
+            var peerUsername = data.peer;
+            var action = data.action;
+            var message = data.message;
+
+            if (action === 'new-peer') {
+                createOffer(peerUsername, message['receiver_channel_name']);
+            } else if (action === 'new-offer') {
+                createAnswer(message['sdp'], peerUsername, message['receiver_channel_name']);
+            } else if (action === 'new-answer') {
+                var peer = peerConnections[peerUsername];
+                peer.setRemoteDescription(new RTCSessionDescription(message['sdp']));
+            } else if (action === 'new-ice-candidate') {
+                var peer = peerConnections[peerUsername];
+                peer.addIceCandidate(new RTCIceCandidate(message['candidate']));
+            }
+        };
+
+        navigator.mediaDevices.getUserMedia({ audio: true })
+            .then(stream => {
+                localStream = stream;
+                document.getElementById('local-audio').srcObject = stream;
+                sendSignal('new-peer', {});
+            })
+            .catch(error => console.error('Error accessing media devices.', error));
+
+        function sendSignal(action, message) {
+            webSocket.send(JSON.stringify({
+                'peer': pin_code,
+                'action': action,
+                'message': message,
+            }));
+        }
+
+        function createOffer(peerUsername, receiver_channel_name) {
+            var peer = new RTCPeerConnection(configuration);
+            addLocalTracks(peer);
+
+            var dc = peer.createDataChannel('channel');
+            dc.addEventListener('open', () => console.log('Connection opened.'));
+            dc.addEventListener('message', (e) => console.log('Message from DataChannel:', e.data));
+
+            peer.onicecandidate = (event) => {
+                if (event.candidate) {
+                    sendSignal('new-ice-candidate', {
+                        'candidate': event.candidate,
+                        'receiver_channel_name': receiver_channel_name,
+                    });
+                }
+            };
+
+            peer.createOffer()
+                .then(offer => peer.setLocalDescription(offer))
+                .then(() => {
+                    sendSignal('new-offer', {
+                        'sdp': peer.localDescription,
+                        'receiver_channel_name': receiver_channel_name,
+                    });
+                });
+
+            peerConnections[peerUsername] = peer;
+        }
+
+        function createAnswer(offer, peerUsername, receiver_channel_name) {
+            var peer = new RTCPeerConnection(configuration);
+            addLocalTracks(peer);
+
+            peer.ondatachannel = (event) => {
+                var dc = event.channel;
+                dc.addEventListener('open', () => console.log('Connection opened.'));
+                dc.addEventListener('message', (e) => console.log('Message from DataChannel:', e.data));
+            };
+
+            peer.onicecandidate = (event) => {
+                if (event.candidate) {
+                    sendSignal('new-ice-candidate', {
+                        'candidate': event.candidate,
+                        'receiver_channel_name': receiver_channel_name,
+                    });
+                }
+            };
+
+            peer.setRemoteDescription(new RTCSessionDescription(offer))
+                .then(() => peer.createAnswer())
+                .then(answer => peer.setLocalDescription(answer))
+                .then(() => {
+                    sendSignal('new-answer', {
+                        'sdp': peer.localDescription,
+                        'receiver_channel_name': receiver_channel_name,
+                    });
+                });
+
+            peerConnections[peerUsername] = peer;
+        }
+
+        function addLocalTracks(peer) {
+            localStream.getTracks().forEach(track => peer.addTrack(track, localStream));
+        }
+    </script>
+</body>
+</html> -->
+
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Audio Call - {{ pin_code }}</title>
+</head>
+<body>
+    <h2>Call PIN: {{ pin_code }}</h2>
+    <audio id="local-audio" autoplay></audio>
+    <audio id="remote-audio" autoplay></audio>
+    <button onclick="toggleMute()">Mute</button> 
+    <script>
+        var pin_code = '{{ pin_code }}';
+        var webSocket = new WebSocket('ws://' + window.location.host + '/ws/call/' + pin_code + '/');
+
+        var localStream = null;
+        var peerConnections = {};
+        var configuration = {'iceServers': [{'urls': 'stun:stun.l.google.com:19302'}]};
+
+        webSocket.onmessage = function(event) {
+            var data = JSON.parse(event.data);
+            var peerUsername = data.peer;
+            var action = data.action;
+            var message = data.message;
+
+            if (action === 'new-peer') {
+                createOffer(peerUsername, message['receiver_channel_name']);
+            } else if (action === 'new-offer') {
+                createAnswer(message['sdp'], peerUsername, message['receiver_channel_name']);
+            } else if (action === 'new-answer') {
+                var peer = peerConnections[peerUsername];
+                peer.setRemoteDescription(new RTCSessionDescription(message['sdp']));
+            } else if (action === 'new-ice-candidate') {
+                var peer = peerConnections[peerUsername];
+                peer.addIceCandidate(new RTCIceCandidate(message['candidate']));
+            }
+        };
+
+        navigator.mediaDevices.getUserMedia({ audio: true })
+            .then(stream => {
+                localStream = stream;
+                document.getElementById('local-audio').srcObject = stream;
+                sendSignal('new-peer', {});
+            })
+            .catch(error => console.error('Error accessing media devices.', error));
+
+        function sendSignal(action, message) {
+            webSocket.send(JSON.stringify({
+                'peer': pin_code,
+                'action': action,
+                'message': message,
+            }));
+        }
+
+        function createOffer(peerUsername, receiver_channel_name) {
+            var peer = new RTCPeerConnection(configuration);
+            addLocalTracks(peer);
+
+            var dc = peer.createDataChannel('channel');
+            dc.addEventListener('open', () => console.log('Connection opened.'));
+            dc.addEventListener('message', (e) => console.log('Message from DataChannel:', e.data));
+
+            peer.onicecandidate = (event) => {
+                if (event.candidate) {
+                    sendSignal('new-ice-candidate', {
+                        'candidate': event.candidate,
+                        'receiver_channel_name': receiver_channel_name,
+                    });
+                }
+            };
+
+            peer.createOffer()
+                .then(offer => peer.setLocalDescription(offer))
+                .then(() => {
+                    sendSignal('new-offer', {
+                        'sdp': peer.localDescription,
+                        'receiver_channel_name': receiver_channel_name,
+                    });
+                });
+
+            peerConnections[peerUsername] = peer;
+        }
+
+        function createAnswer(offer, peerUsername, receiver_channel_name) {
+            var peer = new RTCPeerConnection(configuration);
+            addLocalTracks(peer);
+
+            peer.ondatachannel = (event) => {
+                var dc = event.channel;
+                dc.addEventListener('open', () => console.log('Connection opened.'));
+                dc.addEventListener('message', (e) => console.log('Message from DataChannel:', e.data));
+            };
+
+            peer.onicecandidate = (event) => {
+                if (event.candidate) {
+                    sendSignal('new-ice-candidate', {
+                        'candidate': event.candidate,
+                        'receiver_channel_name': receiver_channel_name,
+                    });
+                }
+            };
+
+            peer.setRemoteDescription(new RTCSessionDescription(offer))
+                .then(() => peer.createAnswer())
+                .then(answer => peer.setLocalDescription(answer))
+                .then(() => {
+                    sendSignal('new-answer', {
+                        'sdp': peer.localDescription,
+                        'receiver_channel_name': receiver_channel_name,
+                    });
+                });
+
+            peerConnections[peerUsername] = peer;
+        }
+
+        function addLocalTracks(peer) {
+            localStream.getTracks().forEach(track => peer.addTrack(track, localStream));
+        }
+
+        
+        function toggleMute() {
+            var audioTrack = localStream.getAudioTracks()[0]; // Assuming there's only one audio track
+            audioTrack.enabled = !audioTrack.enabled;
+        }
+    </script>
+</body>
+</html>
