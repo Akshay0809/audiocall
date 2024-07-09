@@ -1,9 +1,3 @@
-'''from django.urls import path
-from .views import *
-
-urlpatterns = [
-    path("app/", main_view,name="mainview" ),
-]'''
 
 
 from django.urls import path
